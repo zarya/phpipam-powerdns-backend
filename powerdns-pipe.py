@@ -35,7 +35,8 @@ while 1:
     if data[0] == "PING":
         responder("END")
     if data[0] == "AXFR":
-        if not api.lookup(domain) and not api.zone(domain):
+        hosts = api.zone(domain)
+        if not hosts:
             responder("FAIL")
             continue
         responder("DATA\t%s\tIN\tSOA\t3600\t-1\t%s %s %s 1800 3600 604800 3600" % (domain,dns_server[0],config.get('dns','email'),time.strftime('%Y%m%d%H')))
@@ -45,7 +46,7 @@ while 1:
             responder("DATA\t%s\tIN\tNS\t3600\t%s\t%s" % (domain,i,server))
             i=i+1
 
-        for host in api.zone(domain):
+        for host in hosts:
             if domain.endswith('in-addr.arpa'):
                 ip = host['ip'].split('.')
                 arpa = "%s.%s.%s.%s.in-addr.arpa" % (ip[3],ip[2],ip[1],ip[0])
@@ -58,10 +59,15 @@ while 1:
         if len(data) < 5:
             responder("FAIL")
             continue
-            
-        if not api.lookup(data[1]) and not api.zone(data[1]):
-            responder("FAIL")
-            continue
+
+        hosts = api.lookup(data[1])
+        
+        if hosts == False:
+            if api.zone(data[1]) == False:
+                responder("FAIL")
+                continue
+            else:
+                hosts = []
         domain = data[1]
         if data[3] == "SOA" or data[3] == "ANY":
             responder("DATA\t%s\tIN\tSOA\t3600\t-1\t%s %s %s 1800 3600 604800 3600" % (data[1],dns_server[0],config.get('dns','email'),time.strftime('%Y%m%d%H')))
@@ -72,16 +78,12 @@ while 1:
                 i=i+1
 
         if (data[3] == "A" or data[3] == "ANY") and not data[1].endswith('in-addr.arpa'):
-            hosts = api.lookup(data[1])
-            if hosts != False:
-                for host in hosts:
-                    responder("DATA\t%s\tIN\tA\t3600\t-1\t%s" % (data[1],host['ip']))
+            for host in hosts:
+                responder("DATA\t%s\tIN\tA\t3600\t-1\t%s" % (data[1],host['ip']))
 
         if data[3] == "PTR" or data[3] == "ANY" and data[1].endswith('in-addr.arpa'):
-            hosts = api.lookup(data[1])
-            if hosts != False:
-                for host in hosts:
-                    ip = host['ip'].split('.')
-                    arpa = "%s.%s.%s.%s.in-addr.arpa" % (ip[3],ip[2],ip[1],ip[0])
-                    responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (arpa,host['host']))
+            for host in hosts:
+                ip = host['ip'].split('.')
+                arpa = "%s.%s.%s.%s.in-addr.arpa" % (ip[3],ip[2],ip[1],ip[0])
+                responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (arpa,host['host']))
         responder("END")
