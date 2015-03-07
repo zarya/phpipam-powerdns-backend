@@ -15,7 +15,7 @@ cp backend.conf_example backend.conf
 Change the backend.conf to your configuration
 
 ## Powerdns
-add the folowing to the powerdns configuration
+add the following to the powerdns configuration
 ```
 pipe-command=/usr/local/phpipam-powerdns-backend/powerdns-pipe.py
 pipebackend-abi-version=2
