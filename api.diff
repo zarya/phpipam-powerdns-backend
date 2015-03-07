@@ -1,0 +1,61 @@
+diff --git a/api/controllers/Addresses.php b/api/controllers/Addresses.php
+index b45b8f5..78f7eae 100755
+--- a/api/controllers/Addresses.php
++++ b/api/controllers/Addresses.php
+@@ -35,6 +35,13 @@ class Addresses
+ 		if($this->_params['subnetId'])	{ $address->subnetId = $this->_params['subnetId']; }
+ 		# get ip by Id
+ 		elseif($this->_params['id']) 	{ $address->id = $this->_params['id']; }
++		# get ip by ip
++		elseif($this->_params['ip'])	{ $address->ip_addr = $this->_params['ip']; }
++		elseif($this->_params['dns_name'])	{ $address->dns_name = $this->_params['dns_name']; }
++		elseif($this->_params['ip_from'] and $this->_params['ip_to'])	{ 
++			$address->ip_from = $this->_params['ip_from']; 
++			$address->ip_to   = $this->_params['ip_to']; 
++		}
+ 		# false
+ 		else 							{  }
+ 		
+@@ -63,4 +70,4 @@ class Addresses
+ 
+ }
+ 
+-?>
+\ No newline at end of file
++?>
+diff --git a/api/models/address.php b/api/models/address.php
+index 60aa1a8..3e4e94d 100755
+--- a/api/models/address.php
++++ b/api/models/address.php
+@@ -73,6 +73,31 @@ class Address
+ 			$this->fetchArray();
+ 			if(sizeof($this->result)==0) 								{ throw new Exception('Invalid IP address Id '.$this->id); }
+ 		}
++		elseif($this->ip_addr) {
++			//set query
++			$this->query = "select * from `ipaddresses` where `ip_addr` = INET_ATON('".$this->ip_addr."');";
++			$this->fetchArray();
++                        if(sizeof($this->result)==0) {
++				throw new Exception('Invalid IP address '.$this->ip_addr);
++			}
++		}
++		elseif($this->dns_name) {
++			$dns_name = mysql_escape_string($this->dns_name);
++			$this->query = "select * from `ipaddresses` where `dns_name` LIKE '$dns_name';";
++			$this->fetchArray();
++                        if(sizeof($this->result)==0) {
++				throw new Exception('Invalid DNS name '.$this->dns_name);
++			}
++		}
++		elseif($this->ip_from and $this->ip_to) {
++			$ip_from = mysql_escape_string($this->ip_from);
++			$ip_to   = mysql_escape_string($this->ip_to);
++			$this->query = "select * from ipaddresses where ip_addr >= INET_ATON('$ip_from') and ip_addr <= INET_ATON('$ip_to');";
++			$this->fetchArray();
++                        if(sizeof($this->result)==0) {
++                                throw new Exception('Invalid IP range '.$this->ip_from.'-'.$this->ip_to);
++                        }
++		}
+ 		/* method missing */
+ 		else 															{ throw new Exception('Selector missing'); }
+ 	
