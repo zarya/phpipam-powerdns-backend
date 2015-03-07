@@ -38,7 +38,7 @@ while 1:
         responder("END")
     if data[0] == "AXFR":
         hosts = api.zone(domain)
-        if not hosts:
+        if hosts == False:
             responder("FAIL")
             continue
         responder("DATA\t%s\tIN\tSOA\t3600\t-1\t%s %s %s 1800 3600 604800 3600" % (domain,dns_server[0],config.get('dns','email'),time.strftime('%Y%m%d%H')))
@@ -59,6 +59,7 @@ while 1:
  
     if data[0] == "Q":
         if len(data) < 5:
+            logging.error("Q failed");
             responder("FAIL")
             continue
 
@@ -66,13 +67,16 @@ while 1:
         
         if hosts == False:
             if api.zone(data[1]) == False:
+                logging.error("No records");
                 responder("FAIL")
                 continue
             else:
                 hosts = []
         domain = data[1]
+
         if data[3] == "SOA" or data[3] == "ANY":
             responder("DATA\t%s\tIN\tSOA\t3600\t-1\t%s %s %s 1800 3600 604800 3600" % (data[1],dns_server[0],config.get('dns','email'),time.strftime('%Y%m%d%H')))
+
         if data[3] == "NS" or data[3] == "ANY":
             i=1
             for server in dns_server:
