@@ -7,8 +7,10 @@ import logging
 import os
 import ConfigParser
 
+path = os.path.dirname(os.path.abspath(__file__)) 
+
 config = ConfigParser.ConfigParser()
-config.read('backend.conf')
+config.read("%s/backend.conf"%path)
 
 dns_server = config.get('dns','server').split(",") 
 
