@@ -1,0 +1,8 @@
+[phpipam]
+url=http://ipam.nurd.space
+app_id=powerdns
+app_key=
+
+[dns]
+server=dns.nurd.space,ipam.nurd.space
+email=mailbox.example.com
