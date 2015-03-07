@@ -55,7 +55,7 @@ while 1:
                 arpa = "%s.%s.%s.%s.in-addr.arpa" % (ip[3],ip[2],ip[1],ip[0])
                 responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (arpa,host['host']))
             else:
-                responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (host['host'],host['ip']))
+                responder("DATA\t%s\tIN\tA\t3600\t-1\t%s" % (host['host'],host['ip']))
         responder("END")
  
     if data[0] == "Q":
