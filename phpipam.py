@@ -31,6 +31,8 @@ class PHPipam:
     def lookup(self,fqdn):
         if fqdn.endswith('in-addr.arpa'):
             ip = fqdn.split('.')
+            if len(ip) != 6:
+                return False
             _ip = "%s.%s.%s.%s" %(ip[3],ip[2],ip[1],ip[0])
             req = {'ip':_ip}
         else:
@@ -51,10 +53,13 @@ class PHPipam:
         if zone.endswith('in-addr.arpa'):
             #reverse zone
             ip = zone.split('.')
-            if len(ip) == 4:
+            if len(ip) == 3:
+                ip_from = "%s.0.0.0"%(ip[0])
+                ip_to = "%s.255.255.255"%(ip[0])
+            elif len(ip) == 4:
                 ip_from = "%s.%s.0.0"%(ip[1],ip[0])
                 ip_to = "%s.%s.255.255"%(ip[1],ip[0])
-            elif len(ip) == 3:
+            elif len(ip) == 5:
                 ip_from = "%s.%s.%s.0"%(ip[2],ip[1],ip[0])
                 ip_to = "%s.%s.%s.255"%(ip[2],ip[1],ip[0])
             else:

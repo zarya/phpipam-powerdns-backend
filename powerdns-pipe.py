@@ -4,6 +4,7 @@ from phpipam import PHPipam
 import iptools
 import sys
 import logging
+import logging.config
 import os
 import ConfigParser
 
@@ -14,7 +15,7 @@ config.read("%s/backend.conf"%path)
 
 dns_server = config.get('dns','server').split(",") 
 
-logging.basicConfig(filename='/var/log/pdns-pyphpipam.log',level=logging.DEBUG)
+logging.config.fileConfig("%s/logging.conf"%path)
 
 def responder(line):
     sys.stdout.write("%s\n" % line)
