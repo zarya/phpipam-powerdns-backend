@@ -1,22 +1,27 @@
 diff --git a/api/controllers/Addresses.php b/api/controllers/Addresses.php
-index b45b8f5..78f7eae 100755
+index b45b8f5..66270a6 100755
 --- a/api/controllers/Addresses.php
 +++ b/api/controllers/Addresses.php
-@@ -35,6 +35,13 @@ class Addresses
+@@ -35,6 +35,18 @@ class Addresses
  		if($this->_params['subnetId'])	{ $address->subnetId = $this->_params['subnetId']; }
  		# get ip by Id
  		elseif($this->_params['id']) 	{ $address->id = $this->_params['id']; }
 +		# get ip by ip
 +		elseif($this->_params['ip'])	{ $address->ip_addr = $this->_params['ip']; }
++		elseif($this->_params['iplong'])	{ $address->iplong_addr = $this->_params['iplong']; }
 +		elseif($this->_params['dns_name'])	{ $address->dns_name = $this->_params['dns_name']; }
 +		elseif($this->_params['ip_from'] and $this->_params['ip_to'])	{ 
 +			$address->ip_from = $this->_params['ip_from']; 
 +			$address->ip_to   = $this->_params['ip_to']; 
 +		}
++		elseif($this->_params['iplong_from'] and $this->_params['iplong_to'])	{ 
++			$address->iplong_from = $this->_params['iplong_from']; 
++			$address->iplong_to   = $this->_params['iplong_to']; 
++		}
  		# false
  		else 							{  }
  		
-@@ -63,4 +70,4 @@ class Addresses
+@@ -63,4 +75,4 @@ class Addresses
  
  }
  
@@ -24,10 +29,10 @@ index b45b8f5..78f7eae 100755
 \ No newline at end of file
 +?>
 diff --git a/api/models/address.php b/api/models/address.php
-index 60aa1a8..3e4e94d 100755
+index 60aa1a8..b126992 100755
 --- a/api/models/address.php
 +++ b/api/models/address.php
-@@ -73,6 +73,31 @@ class Address
+@@ -73,6 +73,48 @@ class Address
  			$this->fetchArray();
  			if(sizeof($this->result)==0) 								{ throw new Exception('Invalid IP address Id '.$this->id); }
  		}
@@ -37,6 +42,14 @@ index 60aa1a8..3e4e94d 100755
 +			$this->fetchArray();
 +                        if(sizeof($this->result)==0) {
 +				throw new Exception('Invalid IP address '.$this->ip_addr);
++			}
++		}
++		elseif($this->iplong_addr) {
++			//set query
++			$this->query = "select * from `ipaddresses` where `ip_addr` = '".$this->iplong_addr."';";
++			$this->fetchArray();
++                        if(sizeof($this->result)==0) {
++				throw new Exception('Invalid IP long address '.$this->iplong_addr);
 +			}
 +		}
 +		elseif($this->dns_name) {
@@ -56,6 +69,30 @@ index 60aa1a8..3e4e94d 100755
 +                                throw new Exception('Invalid IP range '.$this->ip_from.'-'.$this->ip_to);
 +                        }
 +		}
++		elseif($this->iplong_from and $this->iplong_to) {
++			$ip_from = mysql_escape_string($this->iplong_from);
++			$ip_to   = mysql_escape_string($this->iplong_to);
++			$this->query = "select * from ipaddresses where ip_addr >= '$ip_from' and ip_addr <= '$ip_to';";
++			$this->fetchArray();
++                        if(sizeof($this->result)==0) {
++                                throw new Exception('Invalid IP long range '.$ip_from.'-'.$ip_to);
++                        }
++		}
  		/* method missing */
  		else 															{ throw new Exception('Selector missing'); }
+ 	
+diff --git a/api/models/common.php b/api/models/common.php
+index 6b4208e..ad0b74f 100755
+--- a/api/models/common.php
++++ b/api/models/common.php
+@@ -25,6 +25,10 @@ class Common
+ 		elseif($this->name) {
+ 			if ( is_null($this->name) || strlen($this->name)==0 ) 			{ throw new Exception('Invalid section name - '.$this->name); }
+ 		}
++		# IP
++		elseif($this->ip_addr) {
++			//Dont do anything
++		}
+ 	}
+ 	
  	

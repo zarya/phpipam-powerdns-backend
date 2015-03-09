@@ -4,6 +4,7 @@
 ## Python requirements
 * python-mcrypt
 * python-iptools
+* pythondns
 
 ## Backend
 ```

@@ -3,6 +3,7 @@ import json
 import base64
 from mcrypt import MCRYPT 
 import iptools
+from dns import reversename
 
 class PHPipam:
     def __init__(self,url,app_id,app_key):
@@ -35,17 +36,28 @@ class PHPipam:
                 return False
             _ip = "%s.%s.%s.%s" %(ip[3],ip[2],ip[1],ip[0])
             req = {'ip':_ip}
+        elif fqdn.endswith('ip6.arpa'):
+            ip_rev = fqdn[:-9]
+            ip_tmp = ip_rev[::-1].replace(".","")
+            ip = ":".join([ip_tmp[j:j+4] for j in range(0,len(ip_tmp),4)])
+            req = {'iplong':str(iptools.ipv6.ip2long(ip)) }
         else:
             req = {'dns_name':fqdn}
-
+        
         resp = self.request(req)
         if not resp:
             return False
         hosts = []
         for host in resp:
-            hosts.append({
-                'host':host['dns_name'],
-                'ip':iptools.ipv4.long2ip(int(host['ip_addr']))})
+            try:
+                hosts.append({
+                    'host':host['dns_name'],
+                    'ip':iptools.ipv4.long2ip(int(host['ip_addr']))})
+            except:
+                hosts.append({
+                    'host':host['dns_name'],
+                    'ip6':iptools.ipv6.long2ip(int(host['ip_addr']))})
+                continue
 
         return hosts
 
@@ -68,6 +80,16 @@ class PHPipam:
                 'ip_from':ip_from,
                 'ip_to':ip_to
             }
+        elif zone.endswith('ip6.arpa'):
+            ip_rev = zone[:-9]
+            ip_tmp = ip_rev[::-1].replace(".","")
+            ip = ":".join([ip_tmp[j:j+4] for j in range(0,len(ip_tmp),4)])
+            bits = len(ip_rev.split('.')) * 4
+            iprange = iptools.ipv6.cidr2block("%s::/%s"%(ip,bits))
+            req = {
+                'iplong_from': str(iptools.ipv6.ip2long(iprange[0])),
+                'iplong_to': str(iptools.ipv6.ip2long(iprange[1]))
+            }
         else:
             #forward zone
             query = "%." + zone
@@ -77,8 +99,20 @@ class PHPipam:
             return False
         hosts = []
         for host in resp:
-            hosts.append({
-                'host':host['dns_name'],
-                'ip':iptools.ipv4.long2ip(int(host['ip_addr']))})
+            try:
+                hosts.append({
+                    'host':host['dns_name'],
+                    'ip':iptools.ipv4.long2ip(int(host['ip_addr']))})
+            except:
+                ip6 = iptools.ipv6.long2ip(int(host['ip_addr'])) 
+                reverse_octets = str(ip6).split(':')[::-1]
+                ip6_rev = '.'.join(reverse_octets) + '.in-addr.arpa'
+                ip6_rev = reversename.from_address(ip6) 
+                hosts.append({
+                    'host':host['dns_name'],
+                    'ip6':iptools.ipv6.long2ip(int(host['ip_addr'])),
+                    'ip6_rev':ip6_rev
+                })
+                continue
 
         return hosts

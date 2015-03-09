@@ -54,8 +54,13 @@ while 1:
                 ip = host['ip'].split('.')
                 arpa = "%s.%s.%s.%s.in-addr.arpa" % (ip[3],ip[2],ip[1],ip[0])
                 responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (arpa,host['host']))
+            elif domain.endswith('ip6.arpa'):
+                responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (host['ip6_rev'],host['host']))
             else:
-                responder("DATA\t%s\tIN\tA\t3600\t-1\t%s" % (host['host'],host['ip']))
+                if 'ip' in host.keys():
+                    responder("DATA\t%s\tIN\tA\t3600\t-1\t%s" % (host['host'],host['ip']))
+                elif 'ip6' in host.keys():
+                    responder("DATA\t%s\tIN\tAAAA\t3600\t-1\t%s" % (host['host'],host['ip6']))
         responder("END")
  
     if data[0] == "Q":
@@ -86,11 +91,22 @@ while 1:
 
         if (data[3] == "A" or data[3] == "ANY") and not data[1].endswith('in-addr.arpa'):
             for host in hosts:
-                responder("DATA\t%s\tIN\tA\t3600\t-1\t%s" % (data[1],host['ip']))
+                if 'ip' in host.keys():
+                    responder("DATA\t%s\tIN\tA\t3600\t-1\t%s" % (data[1],host['ip']))
 
-        if data[3] == "PTR" or data[3] == "ANY" and data[1].endswith('in-addr.arpa'):
+        if (data[3] == "AAAA" or data[3] == "ANY") and not data[1].endswith('in-addr.arpa'):
+            for host in hosts:
+                if 'ip6' in host.keys():
+                    responder("DATA\t%s\tIN\tAAAA\t3600\t-1\t%s" % (data[1],host['ip6']))
+
+        if (data[3] == "PTR" or data[3] == "ANY") and data[1].endswith('in-addr.arpa'):
             for host in hosts:
                 ip = host['ip'].split('.')
                 arpa = "%s.%s.%s.%s.in-addr.arpa" % (ip[3],ip[2],ip[1],ip[0])
                 responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (arpa,host['host']))
+
+        if (data[3] == "PTR" or data[3] == "ANY") and data[1].endswith('ip6.arpa'):
+            for host in hosts:
+                responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (data[1],host['host']))
+                #do something with the hosts
         responder("END")
