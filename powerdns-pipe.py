@@ -13,9 +13,9 @@ path = os.path.dirname(os.path.abspath(__file__))
 config = ConfigParser.ConfigParser()
 config.read("%s/backend.conf"%path)
 
-dns_server = config.get('dns','server').split(",") 
+dns_server = config.get('dns', 'server').split(",") 
 
-logging.config.fileConfig("%s/logging.conf"%path)
+logging.config.fileConfig("%s/logging.conf" % path)
 
 def responder(line):
     sys.stdout.write("%s\n" % line)
@@ -34,15 +34,15 @@ while 1:
         continue
 
     api = PHPipam(
-        url=config.get('phpipam','url'),
-        app_id=config.get('phpipam','app_id'),
-        app_key=config.get('phpipam','app_key')
+        url=config.get('phpipam', 'url'),
+        app_id=config.get('phpipam', 'app_id'),
+        app_key=config.get('phpipam', 'app_key')
     )
 
     logging.debug(line)
 
     if data[0] == "HELO":
-        responder("OK\tpython phpIPAM Backend Module ver 0.1 (PID %s)" % (os.getpid()))
+        responder("OK\tpython phpIPAM Backend Module ver 0.1 (PID %s)" % os.getpid())
 
     if data[0] == "PING":
         responder("END")
@@ -57,7 +57,7 @@ while 1:
         responder("DATA\t%s\tIN\tSOA\t3600\t-1\t%s %s %s 1800 3600 604800 3600" % (
             domain,
             dns_server[0],
-            config.get('dns','email'),
+            config.get('dns', 'email'),
             time.strftime('%Y%m%d%H'))
         )
 
@@ -112,7 +112,7 @@ while 1:
             responder("DATA\t%s\tIN\tSOA\t3600\t-1\t%s %s %s 1800 3600 604800 3600" % (
                 data[1],
                 dns_server[0],
-                config.get('dns','email'),
+                config.get('dns', 'email'),
                 time.strftime('%Y%m%d%H'))
             )
 
