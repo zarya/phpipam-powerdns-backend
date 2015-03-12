@@ -17,9 +17,17 @@ dns_server = config.get('dns', 'server').split(",")
 
 logging.config.fileConfig("%s/logging.conf" % path)
 
-def responder(line):
-    sys.stdout.write("%s\n" % line)
-    logging.debug(line)
+def responder(qname, qclass, qtype, qttl, qid, qcontent):
+    response = "DATA\t%s\t%s\t%s\t%s\t%s\t%s" % (
+        qname,
+        qclass,
+        qtype,
+        qttl,
+        qid,
+        qcontent
+    )
+    sys.stdout.write("%s\n" % response)
+    logging.debug(response)
 
 while 1:
     try:
@@ -42,31 +50,42 @@ while 1:
     logging.debug(line)
 
     if data[0] == "HELO":
-        responder("OK\tpython phpIPAM Backend Module ver 0.1 (PID %s)" % os.getpid())
+        response = "OK\tpython phpIPAM Backend Module ver 0.1 (PID %s)" % os.getpid()
+        sys.stdout.write("%s\n" % response)
+        logging.debug(response)
 
     if data[0] == "PING":
-        responder("END")
+        sys.stdout.write("END\n")
 
     if data[0] == "AXFR":
         hosts = api.zone(domain)
 
         if hosts == False:
-            responder("FAIL")
+            sys.stdout.write("FAIL\n")
             continue
 
-        responder("DATA\t%s\tIN\tSOA\t3600\t-1\t%s %s %s 1800 3600 604800 3600" % (
-            domain,
-            dns_server[0],
-            config.get('dns', 'email'),
-            time.strftime('%Y%m%d%H'))
+        responder(
+            qname=domain,
+            qclass="IN",
+            qtype="SOA",
+            qttl=3600,
+            qid=-1,
+            qcontent="%s %s %s 1800 3600 604800 3600" % (
+                dns_server[0],
+                config.get('dns', 'email'),
+                time.strftime('%Y%m%d%H')
+            )
         )
 
         i = 1 
         for server in dns_server:
-            responder("DATA\t%s\tIN\tNS\t3600\t%s\t%s" % (
-                domain,
-                i,
-                server)
+            responder(
+                qname = domain,
+                qclass = "IN",
+                qtype = "NS",
+                qttl = 3600,
+                qid = i,
+                qcontent = server
             )
 
             i+=1
@@ -75,24 +94,53 @@ while 1:
             if domain.endswith('in-addr.arpa'):
                 ip = host['ip'].split('.')
                 arpa = "%s.%s.%s.%s.in-addr.arpa" % (ip[3], ip[2], ip[1], ip[0])
-                responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (arpa, host['host']))
+                responder(
+                    qname = arpa,
+                    qclass = "IN",
+                    qtype = "PTR",
+                    qttl = 3600,
+                    qid = -1,
+                    qcontent = host['host']
+                )
 
             elif domain.endswith('ip6.arpa'):
-                responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (host['ip6_rev'], host['host']))
+                responder(
+                    qname = host['ip6_rev'],
+                    qclass = "IN",
+                    qtype = "PTR",
+                    qttl = 3600,
+                    qid = -1,
+                    qcontent = host['host']
+                )
 
             else:
                 if 'ip' in host.keys():
-                    responder("DATA\t%s\tIN\tA\t3600\t-1\t%s" % (host['host'], host['ip']))
+                    responder(
+                        qname = host['host'],
+                        qclass = "IN",
+                        qtype = "A",
+                        qttl = 3600,
+                        qid = -1,
+                        qcontent = host['ip']
+                    )
 
                 elif 'ip6' in host.keys():
-                    responder("DATA\t%s\tIN\tAAAA\t3600\t-1\t%s" % (host['host'], host['ip6']))
+                    responder(
+                        qname = host['host'],
+                        qclass = "IN",
+                        qtype = "AAAA",
+                        qttl = 3600,
+                        qid = -1,
+                        qcontent = host['ip6']
+                    )
 
-        responder("END")
+        sys.stdout.write("END\n")
+        logging.debug("END")
  
     if data[0] == "Q":
         if len(data) < 5:
             logging.error("Q failed");
-            responder("FAIL")
+            sys.stdout.write("FAIL\n")
             continue
 
         hosts = api.lookup(data[1])
@@ -100,7 +148,7 @@ while 1:
         if hosts == False:
             if api.zone(data[1]) == False:
                 logging.error("No records");
-                responder("FAIL")
+                sys.stdout.write("FAIL\n")
                 continue
 
             else:
@@ -109,39 +157,81 @@ while 1:
         domain = data[1]
 
         if data[3] == "SOA" or data[3] == "ANY":
-            responder("DATA\t%s\tIN\tSOA\t3600\t-1\t%s %s %s 1800 3600 604800 3600" % (
-                data[1],
-                dns_server[0],
-                config.get('dns', 'email'),
-                time.strftime('%Y%m%d%H'))
+            responder(
+                qname = data[1],
+                qclass = "IN",
+                qtype = "SOA",
+                qttl = 3600,
+                qid = -1,
+                qcontent="%s %s %s 1800 3600 604800 3600" % (
+                    dns_server[0],
+                    config.get('dns', 'email'),
+                    time.strftime('%Y%m%d%H')
+                )
             )
 
         if data[3] == "NS" or data[3] == "ANY":
             i=1
 
             for server in dns_server:
-                responder("DATA\t%s\tIN\tNS\t3600\t%s\t%s" % (data[1], i, server))
+                responder(
+                    qname = data[1],
+                    qclass = "IN",
+                    qtype = "NS",
+                    qttl = 3600,
+                    qid = i,
+                    qcontent = server
+                )
 
                 i+=1
 
         if (data[3] == "A" or data[3] == "ANY") and not data[1].endswith('in-addr.arpa'):
             for host in hosts:
                 if 'ip' in host.keys():
-                    responder("DATA\t%s\tIN\tA\t3600\t-1\t%s" % (data[1], host['ip']))
+                    responder(
+                        qname = data[1],
+                        qclass = "IN",
+                        qtype = "A",
+                        qttl = 3600,
+                        qid = i,
+                        qcontent = host['ip'] 
+                    )
 
         if (data[3] == "AAAA" or data[3] == "ANY") and not data[1].endswith('in-addr.arpa'):
             for host in hosts:
                 if 'ip6' in host.keys():
-                    responder("DATA\t%s\tIN\tAAAA\t3600\t-1\t%s" % (data[1], host['ip6']))
+                    responder(
+                        qname = data[1],
+                        qclass = "IN",
+                        qtype = "A",
+                        qttl = 3600,
+                        qid = i,
+                        qcontent = host['ip6'] 
+                    )
 
         if (data[3] == "PTR" or data[3] == "ANY") and data[1].endswith('in-addr.arpa'):
             for host in hosts:
                 ip = host['ip'].split('.')
                 arpa = "%s.%s.%s.%s.in-addr.arpa" % (ip[3], ip[2], ip[1], ip[0])
-                responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (arpa, host['host']))
+                responder(
+                    qname = arpa,
+                    qclass = "IN",
+                    qtype = "PTR",
+                    qttl = 3600,
+                    qid = i,
+                    qcontent = host['host'] 
+                )
 
         if (data[3] == "PTR" or data[3] == "ANY") and data[1].endswith('ip6.arpa'):
             for host in hosts:
-                responder("DATA\t%s\tIN\tPTR\t3600\t-1\t%s" % (data[1], host['host']))
+                responder(
+                    qname = data[1],
+                    qclass = "IN",
+                    qtype = "PTR",
+                    qttl = 3600,
+                    qid = i,
+                    qcontent = host['host'] 
+                )
 
-        responder("END")
+        sys.stdout.write("END\n")
+        logging.debug("END")
